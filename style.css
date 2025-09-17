@@ -1,0 +1,66 @@
+:root {
+      --bg: #0a0a0b;
+      --panel: #121214;
+      --muted: #a1a1aa;
+      --text: #fafafa;
+      --border: #27272a;
+      --accent: #4ade80;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    p.lead { color: var(--muted); margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 860px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+    input, button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0e0e10;
+      color: var(--text);
+      outline: none;
+      font-size: 1rem;
+    }
+    input:focus { outline: 2px solid #333; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 640px) { .row-2 { grid-template-columns: 1fr 1fr; } }
+    .muted { color: var(--muted); font-size: 0.95rem; }
+    .stat {
+      background: #0e0e10; border: 1px solid var(--border);
+      padding: 12px; border-radius: 12px;
+    }
+    .stat .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: .06em; }
+    .stat .value { font-size: 1.25rem; margin-top: 6px; font-weight: 600; }
+    .btn {
+      background: #1f2937; border: 1px solid var(--border); cursor: pointer;
+      transition: transform .02s ease-in-out;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: #1a2e22; border-color: #1c3f2b; }
+    footer { margin-top: 16px; color: var(--muted); font-size: 0.9rem; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .err { color: var(--danger); font-size: 0.9rem; margin-top: 8px; min-height: 1.2em; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px; border: 2px solid #555; border-top-color: #ddd; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg);} }
+    .inline { display: inline-flex; gap: 8px; align-items: center; }
+    .hint { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+    .desc-title { color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 0.85rem; }
