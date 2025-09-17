@@ -246,3 +246,44 @@ $("fx").addEventListener("input", () => {
   $("fx").dataset.source = "manual entry";
   $("fx").dataset.timestamp = "";
 });
+
+
+// ===== Global counter backend =====
+const USAGE_ENDPOINT = 'https://script.google.com/a/macros/joinforma.com/s/AKfycbwSWD0tEwc0Qma7GxFSMn-bOpk6fM5wVvu8cAcx5fug3r_fkfKSDb2PeaWc05jaakik/exec'; // GAS web app URL
+const USAGE_SECRET  = 'optional-secret'; // must match SECRET above, or '' if disabled
+
+async function fetchGlobalCount() {
+  try {
+    const r = await fetch(USAGE_ENDPOINT, { method: 'GET' });
+    const j = await r.json();
+    if (j && typeof j.count === 'number') {
+      const el = document.getElementById('usageCountGlobal');
+      if (el) el.textContent = j.count.toLocaleString();
+    }
+  } catch {}
+}
+
+async function bumpGlobalCount() {
+  try {
+    const r = await fetch(USAGE_ENDPOINT + (USAGE_SECRET ? `?secret=${encodeURIComponent(USAGE_SECRET)}` : ''), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: USAGE_SECRET ? JSON.stringify({ secret: USAGE_SECRET }) : '{}'
+    });
+    const j = await r.json();
+    if (j && typeof j.count === 'number') {
+      const el = document.getElementById('usageCountGlobal');
+      if (el) el.textContent = j.count.toLocaleString();
+    }
+  } catch {}
+}
+
+// After incrementCount();
+incrementCount();
+bumpGlobalCount();
+
+// On page ready:
+document.addEventListener("DOMContentLoaded", () => {
+  loadCount();        // your local counter
+  fetchGlobalCount(); // global counter fetch
+});
