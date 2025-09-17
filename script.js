@@ -284,6 +284,6 @@ bumpGlobalCount();
 
 // On page ready:
 document.addEventListener("DOMContentLoaded", () => {
-  loadCount();        // your local counter
-  fetchGlobalCount(); // global counter fetch
+  loadCount();
+  fetchGlobalCount(); // (see #2)
 });
