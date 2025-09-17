@@ -278,12 +278,4 @@ async function bumpGlobalCount() {
   } catch {}
 }
 
-// After incrementCount();
-incrementCount();
-bumpGlobalCount();
 
-// On page ready:
-document.addEventListener("DOMContentLoaded", () => {
-  loadCount();
-  fetchGlobalCount(); // (see #2)
-});
