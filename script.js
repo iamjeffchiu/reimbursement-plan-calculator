@@ -1,3 +1,7 @@
+// === config ===
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CACHE_NS = "fxCache_v1";       // localStorage namespace
+
 // === helpers ===
 const $ = (id) => document.getElementById(id);
 function toNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
@@ -7,6 +11,29 @@ function fmt(n, d) {
   return (Math.round(n * f) / f).toLocaleString(undefined, {
     minimumFractionDigits: decimals, maximumFractionDigits: decimals
   });
+}
+
+// === tiny cache ===
+function loadCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_NS) || "{}"); }
+  catch { return {}; }
+}
+function saveCache(cache) {
+  try { localStorage.setItem(CACHE_NS, JSON.stringify(cache)); } catch {}
+}
+function cacheKey(from, to) { return `${from}->${to}`; }
+function getCachedFX(from, to) {
+  const cache = loadCache();
+  const key = cacheKey(from, to);
+  const entry = cache[key];
+  if (!entry) return null;
+  const fresh = (Date.now() - entry.cachedAt) <= CACHE_TTL_MS;
+  return fresh ? entry : null;
+}
+function setCachedFX(from, to, payload) {
+  const cache = loadCache();
+  cache[cacheKey(from, to)] = { ...payload, cachedAt: Date.now() };
+  saveCache(cache);
 }
 
 let lastPair = null; // tracks last fetched pair "OLD->NEW"
@@ -134,7 +161,7 @@ async function fetchFXMulti(from, to) {
   return { rate: null, source: null, timestamp: null, errors };
 }
 
-// === Calculate button handler ===
+// === Calculate button handler with cache ===
 async function handleCalculate() {
   $("fxError").textContent = "";
   const btn = $("btnCalc");
@@ -146,24 +173,37 @@ async function handleCalculate() {
   const needFetch = (from && to) && (`${from}->${to}` !== lastPair);
 
   if (needFetch) {
-    btn.disabled = true;
-    btnText.innerHTML = '<span class="spinner"></span> Fetching FX…';
-
-    const { rate, source, timestamp, errors } = await fetchFXMulti(from, to);
-    if (rate === null) {
-      $("fxError").textContent = "Live FX failed. Enter FX manually. Details: " + (errors || []).join(" | ");
-      $("fx").dataset.source = "manual entry";
-      $("fx").dataset.timestamp = "";
-    } else {
-      $("fx").value = String(rate);
+    // 1) Try cache first
+    const cached = getCachedFX(from, to);
+    if (cached && typeof cached.rate === "number") {
+      $("fx").value = String(cached.rate);
+      $("fx").dataset.source = (cached.source || "cached");
+      $("fx").dataset.timestamp = cached.timestamp || new Date(cached.cachedAt).toISOString();
       lastPair = `${from}->${to}`;
-      $("fx").dataset.source = source || "live";
-      $("fx").dataset.timestamp = timestamp || new Date().toISOString();
+      // Optional: Show a subtle hint
+      $("fxError").textContent = "(Using cached rate)";
+    } else {
+      // 2) Fall back to live fetch
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Fetching FX…';
+
+      const { rate, source, timestamp, errors } = await fetchFXMulti(from, to);
+      if (rate === null) {
+        $("fxError").textContent = "Live FX failed. Enter FX manually. Details: " + (errors || []).join(" | ");
+        $("fx").dataset.source = "manual entry";
+        $("fx").dataset.timestamp = "";
+      } else {
+        $("fx").value = String(rate);
+        $("fx").dataset.source = source || "live";
+        $("fx").dataset.timestamp = timestamp || new Date().toISOString();
+        setCachedFX(from, to, { rate, source, timestamp });
+        lastPair = `${from}->${to}`;
+      }
+      btn.disabled = false;
+      btnText.textContent = "Calculate";
     }
-    btn.disabled = false;
-    btnText.textContent = "Calculate";
   } else {
-    // If user changes FX manually, mark as manual
+    // If user changes FX manually, mark as manual (and don't cache)
     if ($("fx").value.trim()) {
       $("fx").dataset.source = "manual entry";
       $("fx").dataset.timestamp = "";
