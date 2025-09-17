@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reimbursement Plan — Currency Change Calculator</title>
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --panel: #121214;
+      --muted: #a1a1aa;
+      --text: #fafafa;
+      --border: #27272a;
+      --accent: #4ade80;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    p.lead { color: var(--muted); margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 860px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+    input, button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0e0e10;
+      color: var(--text);
+      outline: none;
+      font-size: 1rem;
+    }
+    input:focus { outline: 2px solid #333; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 640px) { .row-2 { grid-template-columns: 1fr 1fr; } }
+    .muted { color: var(--muted); font-size: 0.95rem; }
+    .stat {
+      background: #0e0e10; border: 1px solid var(--border);
+      padding: 12px; border-radius: 12px;
+    }
+    .stat .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: .06em; }
+    .stat .value { font-size: 1.25rem; margin-top: 6px; font-weight: 600; }
+    .btn {
+      background: #1f2937; border: 1px solid var(--border); cursor: pointer;
+      transition: transform .02s ease-in-out;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: #1a2e22; border-color: #1c3f2b; }
+    footer { margin-top: 16px; color: var(--muted); font-size: 0.9rem; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .err { color: var(--danger); font-size: 0.9rem; margin-top: 8px; min-height: 1.2em; }
+    .spinner {
+      display: inline-block; width: 14px; height: 14px; border: 2px solid #555; border-top-color: #ddd; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg);} }
+    .inline { display: inline-flex; gap: 8px; align-items: center; }
+    .hint { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+    .desc-title { color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Reimbursement Plan — Currency Change Calculator</h1>
+      <p class="lead">New submitted amount = <span class="mono">reimbursed (old ccy)</span> + <span class="mono">unreimbursed (new ccy)</span></p>
+    </header>
+
+    <section class="card">
+      <div class="grid grid-2">
+        <div class="row row-2">
+          <div>
+            <label for="oldCcy">Old currency code</label>
+            <input id="oldCcy" placeholder="e.g., USD" value="" />
+          </div>
+          <div>
+            <label for="newCcy">New currency code</label>
+            <input id="newCcy" placeholder="e.g., TWD" value="" />
+          </div>
+        </div>
+
+        <div class="row row-2">
+          <div>
+            <label for="originalOld">Original submitted (old currency)</label>
+            <input id="originalOld" type="number" step="0.01" value="" />
+          </div>
+          <div>
+            <label for="reimbursedOld">Reimbursed to date (old currency)</label>
+            <input id="reimbursedOld" type="number" step="0.01" value="" />
+          </div>
+        </div>
+
+        <div class="row row-2">
+          <div>
+            <label for="fx">FX rate (1 old = ? new)</label>
+            <input id="fx" type="number" step="0.0001" value="" />
+          </div>
+          <div>
+            <label for="decimals">Decimal places</label>
+            <input id="decimals" type="number" step="1" value="" placeholder="e.g., 2 for USD, 0 for TWD/JPY" />
+          </div>
+        </div>
+
+        <div class="row row-2">
+          <div>
+            <label>&nbsp;</label>
+            <div class="inline">
+              <button id="btnCalc" class="btn btn-primary"><span id="calcBtnText">Calculate</span></button>
+              <button id="btnReset" class="btn">Reset</button>
+            </div>
+            <div id="fxError" class="err"></div>
+            <div class="hint">FX is fetched automatically on Calculate when the currency pair changes. If providers are blocked by your network, enter FX manually.</div>
+          </div>
+          <div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <div class="grid grid-2">
+        <div class="stat">
+          <div class="label">Remaining (old currency)</div>
+          <div class="value"><span id="remainingOld">—</span></div>
+        </div>
+        <div class="stat">
+          <div class="label">Remaining (converted to new)</div>
+          <div class="value"><span id="remainingNew">—</span></div>
+        </div>
+      </div>
+
+      <div class="stat" style="margin-top:16px;">
+        <div class="label">System formula (Hybrid Total)</div>
+        <div class="value"><span id="hybridTotal">—</span> <span class="muted mono" id="hybridTag"></span></div>
+        <div class="muted" style="margin-top:6px;">Set this as the new <span class="mono">Submitted Amount</span> to keep future reimbursements in <span id="ccyNewText">NEW</span> while preserving already reimbursed <span id="ccyOldText">OLD</span>.</div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <div class="desc-title">Description</div>
+      <p id="descText" class="muted" style="margin-top:8px;">—</p>
+    </section>
+
+    <footer>
+      <p>Notes: <span class="mono">remaining = original − reimbursed</span> (old ccy). FX is treated as a fixed rate at the time of conversion. Change rounding via "Decimal places".</p>
+    </footer>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function toNum(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+    function fmt(n, d) {
+      const decimals = Number.isFinite(d) ? Math.max(0, Math.floor(d)) : 2;
+      const f = Math.pow(10, decimals);
+      return (Math.round(n * f) / f).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    let lastPair = null; // tracks last fetched pair "OLD->NEW"
+
+    function calculate() {
+      const oldCcyRaw = $("oldCcy").value.trim();
+      const newCcyRaw = $("newCcy").value.trim();
+      const oldCcy = oldCcyRaw.toUpperCase() || "OLD";
+      const newCcy = newCcyRaw.toUpperCase() || "NEW";
+      const original = toNum($("originalOld").value);
+      const reimbursed = toNum($("reimbursedOld").value);
+      const fx = toNum($("fx").value);
+      const decimals = toNum($("decimals").value);
+
+      const remainingOld = Math.max(0, original - reimbursed);
+      const remainingNew = remainingOld * fx;
+      const hybrid = reimbursed + remainingNew;
+
+      // Top stats
+      $("remainingOld").textContent = (original || reimbursed) ? (fmt(remainingOld, decimals) + " " + oldCcy) : "—";
+      $("remainingNew").textContent = (remainingOld && fx) ? (fmt(remainingNew, decimals) + " " + newCcy) : "—";
+      $("hybridTotal").textContent = (fx || reimbursed) ? fmt(hybrid, decimals) : "—";
+      $("hybridTag").textContent = `[${oldCcy} + ${newCcy}]`;
+      $("ccyNewText").textContent = newCcy;
+      $("ccyOldText").textContent = oldCcy;
+
+      // Description
+      if (original > 0 && fx > 0 && oldCcyRaw && newCcyRaw) {
+        const parts = [];
+        parts.push(`This reimbursement plan was originally submitted for ${fmt(original, decimals)} ${oldCcy}.`);
+        parts.push(`${fmt(reimbursed, decimals)} ${oldCcy} has been reimbursed to date, leaving ${fmt(remainingOld, decimals)} ${oldCcy} outstanding.`);
+        parts.push(`After changing from ${oldCcy} to ${newCcy}, the remaining balance will be reimbursed as ${fmt(remainingNew, decimals)} ${newCcy}.`);
+        parts.push(`Therefore, the updated submitted amount becomes ${fmt(hybrid, decimals)}.`);
+        $("descText").textContent = parts.join(" ");
+      } else {
+        $("descText").textContent = "Enter the currencies, original submitted amount, reimbursed-to-date, and FX (or click Calculate to fetch) to generate a description of the adjustment.";
+      }
+    }
+
+    function withTimeout(ms) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      return { signal: ctrl.signal, clear: () => clearTimeout(t) };
+    }
+
+    async function fetchFXMulti(from, to) {
+      const ts = Date.now();
+      const sources = [
+        async (signal) => { // exchangerate.host convert
+          const url = `https://api.exchangerate.host/convert?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&amount=1&_ts=${ts}`;
+          const res = await fetch(url, { method: "GET", signal });
+          if (!res.ok) throw new Error("host/convert HTTP " + res.status);
+          const data = await res.json();
+          if (data && typeof data.result === "number") return data.result;
+          if (data && data.info && typeof data.info.rate === "number") return data.info.rate;
+          throw new Error("host/convert unexpected shape");
+        },
+        async (signal) => { // exchangerate.host latest
+          const url = `https://api.exchangerate.host/latest?base=${encodeURIComponent(from)}&symbols=${encodeURIComponent(to)}&_ts=${ts}`;
+          const res = await fetch(url, { method: "GET", signal });
+          if (!res.ok) throw new Error("host/latest HTTP " + res.status);
+          const data = await res.json();
+          if (data && data.rates && typeof data.rates[to] === "number") return data.rates[to];
+          throw new Error("host/latest unexpected shape");
+        },
+        async (signal) => { // open.er-api.com
+          const url = `https://open.er-api.com/v6/latest/${encodeURIComponent(from)}?_ts=${ts}`;
+          const res = await fetch(url, { method: "GET", signal });
+          if (!res.ok) throw new Error("er-api HTTP " + res.status);
+          const data = await res.json();
+          if (data && data.result === "success" && data.rates && typeof data.rates[to] === "number") return data.rates[to];
+          throw new Error("er-api unexpected shape");
+        },
+        async (signal) => { // jsdelivr static currency-api
+          const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${from.toLowerCase()}.json?_ts=${ts}`;
+          const res = await fetch(url, { method: "GET", signal });
+          if (!res.ok) throw new Error("jsdelivr HTTP " + res.status);
+          const data = await res.json();
+          if (data && data[from.toLowerCase()] && typeof data[from.toLowerCase()][to.toLowerCase()] === "number") {
+            return data[from.toLowerCase()][to.toLowerCase()];
+          }
+          throw new Error("jsdelivr unexpected shape");
+        }
+      ];
+
+      const errors = [];
+      for (const src of sources) {
+        const { signal, clear } = withTimeout(5000);
+        try {
+          const r = await src(signal);
+          clear();
+          if (typeof r === "number" && isFinite(r) && r > 0) return { rate: r };
+        } catch (e) {
+          clear();
+          errors.push(e.message || String(e));
+        }
+      }
+      return { rate: null, errors };
+    }
+
+    async function handleCalculate() {
+      $("fxError").textContent = "";
+      const btn = $("btnCalc");
+      const btnText = $("calcBtnText");
+      const from = $("oldCcy").value.trim().toUpperCase();
+      const to = $("newCcy").value.trim().toUpperCase();
+
+      // Determine if we need to fetch: only when pair changed and both codes present
+      const needFetch = (from && to) && (`${from}->${to}` !== lastPair);
+
+      if (needFetch) {
+        btn.disabled = true;
+        btnText.innerHTML = '<span class="spinner"></span> Fetching FX…';
+
+        const { rate, errors } = await fetchFXMulti(from, to);
+        if (rate === null) {
+          $("fxError").textContent = "Live FX failed. Enter FX manually. Details: " + (errors || []).join(" | ");
+        } else {
+          $("fx").value = String(rate);
+          lastPair = `${from}->${to}`;
+        }
+        btn.disabled = false;
+        btnText.textContent = "Calculate";
+      }
+
+      calculate();
+    }
+
+    $("btnCalc").addEventListener("click", handleCalculate);
+
+    $("btnReset").addEventListener("click", () => {
+      $("oldCcy").value = "";
+      $("newCcy").value = "";
+      $("originalOld").value = "";
+      $("reimbursedOld").value = "";
+      $("fx").value = "";
+      $("decimals").value = "";
+      $("remainingOld").textContent = "—";
+      $("remainingNew").textContent = "—";
+      $("hybridTotal").textContent = "—";
+      $("hybridTag").textContent = "";
+      $("ccyNewText").textContent = "NEW";
+      $("ccyOldText").textContent = "OLD";
+      $("fxError").textContent = "";
+      $("descText").textContent = "—";
+      lastPair = null;
+    });
+
+    // If user changes currencies, mark as needing fetch
+    ["oldCcy", "newCcy"].forEach(id => {
+      $(id).addEventListener("input", () => { lastPair = null; });
+    });
+  </script>
+</body>
+</html>
